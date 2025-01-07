@@ -1,0 +1,28 @@
+# config.yaml
+
+# General Settings
+batch_size: 128
+device: "cuda"
+num_epochs: 10
+use_validation: True
+
+# DataLoader Settings
+data_augmentation: False
+dataset: "cifar10"
+dataset_directory: "./data"
+num_workers: 2
+shuffle_train: True
+
+# Model Settings
+model_name: "resnet18"
+pretrained: true
+
+# Optimizer Settings
+learning_rate: 0.001
+momentum: 0.9
+optimizer: "sgd"
+
+# Training Stage Settings
+early_stopping: false
+early_stopping_patience: 5
+loss_function: "cross_entropy"
