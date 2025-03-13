@@ -15,7 +15,6 @@ shuffle_train: True
 
 # Model Settings
 model_name: "resnet18"
-pretrained: true
 
 # Optimizer Settings
 learning_rate: 0.001

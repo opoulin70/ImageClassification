@@ -1,42 +1,47 @@
-"""TODO"""
+"""Configuration module for the machine learning pipeline.
 
-from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict
+This module defines the `Config` class, which stores all configurable parameters related to data loading,
+model selection, training, and optimization. It ensures data integrity through validation checks and provides
+convenient methods for loading and saving configurations in YAML format.
+"""
+
 import yaml
+from dataclasses import dataclass, asdict
+from typing import Optional
+import source.utilities as utils
 
 
-# TODO : Add relevant fields
 @dataclass(frozen=True)
-class Config:  # TODO : Make frozen=True as to make it immutable?
-    """Configuration used in the pipeline.
+class Config:
+    """Configuration parameters for the pipeline.
 
     --- General Settings ---
-    batch_size : Batch size for data loaders.
-    device : Compute device (cuda, cpu).
-    num_epochs : Number of training epochs.
+    batch_size: Batch size for training.
+    device: Compute device ('cpu' or 'cuda').
+    num_epochs: Number of training epochs.
 
     --- Data Loader settings ---
     data_augmentation: Enables data augmentation.
-    dataset : The dataset used for training and testing data.
-    dataset_directory : Directory to store the downloaded dataset.
-    num_workers : How many subprocesses to use for data loading.
-    shuffle_train: Whether to shuffle data for the training.
+    dataset: The dataset used for training/testing.
+    dataset_directory: Directory for dataset storage.
+    num_workers: How many subprocesses to use for data loading.
+    shuffle_train: Whether to shuffle training data.
 
     --- Model Loader Settings ---
     model_name: Name of the model to be used (e.g. ResNet50).
-    pretrained: Indicates whether to use a pre-trained model.
 
     --- Optimizer Settings ---
-    learning_rate : Initial learning rate.
-    momentum: Momentum parameter for SGD optimizer.
-    optimizer: Optimizer type (sgd, adam, etc.).
+    learning_rate: Initial learning rate.
+    momentum: Momentum value for optimizers (e.g., SGD).
+    optimizer: Optimizer type ('sgd', 'adam', etc.).
 
     --- Training Settings ---
     early_stopping: Enables early stopping.
-    early_stopping_patience: Number of epochs to wait before stopping training.
-    loss_function: Loss function type (e.g. cross_entropy_loss).
-    use_validation : Enables validation during training stage.
+    early_stopping_patience: Number of epochs before stopping.
+    loss_function: Loss function (e.g., 'cross_entropy').
+    use_validation: Enables validation during training.
     """
+
     # General settings
     batch_size: int = 128
     device: str = "cpu"
@@ -51,7 +56,6 @@ class Config:  # TODO : Make frozen=True as to make it immutable?
 
     # Model Loader settings
     model_name: str = "resnet18"
-    pretrained: bool = True
 
     # Optimizer settings
     learning_rate: float = 0.001
@@ -64,73 +68,95 @@ class Config:  # TODO : Make frozen=True as to make it immutable?
     loss_function: str = "cross_entropy"
     use_validation: bool = True
 
-    # TODO : Move somewhere else ?
     DEVICES = {
         "cpu",
         "cuda"
     }
 
-    # TODO
     def __post_init__(self):
-        # TODO : Move dictionaries somewhere else ?
-        # TODO : Create functions for each validation to make it more maintainable
-        # Import the dictionaries
-        from source.stages.model_loader_stage import ModelLoaderStage
-        from source.stages.data_loader_stage import DataLoaderStage
-        from source.stages.training_stage import TrainingStage
+        """Validates configuration settings upon initialization."""
 
-        # General settings
+        self._validate_general_settings()
+        self._validate_data_loader_settings()
+        self._validate_model_loader_settings()
+        self._validate_training_settings()
+        self._validate_optimizer_settings()
+
+    def _validate_general_settings(self) -> None:
+        """Validates general configuration settings."""
         if self.batch_size <= 0:
-            raise ValueError("Config file 'batch_size' must be greater than 0.")
+            raise ValueError("Config 'batch_size' must be greater than 0.")
         if self.device not in self.DEVICES:
-            raise ValueError("Config file 'device' must be either 'cpu' or 'cuda'.")
+            raise ValueError(f"Invalid config 'device': {self.device}. "
+                             f"Supported: {utils.list_possible_values(self.DEVICES)}")
         if self.num_epochs <= 0:
             raise ValueError("Config file 'num_epochs' must be greater than 0.")
 
-        # Data Loader settings
+    def _validate_data_loader_settings(self) -> None:
+        """Validates data loader settings."""
+        from source.stages.data_loader_stage import DataLoaderStage
+
         if not isinstance(self.data_augmentation, bool):
-            raise TypeError("Config file 'data_augmentation' must be a boolean.")
+            raise TypeError("Config 'data_augmentation' must be a boolean.")
         if self.dataset not in DataLoaderStage.DATASET:
-            raise ValueError(f"Unsupported dataset name: {self.dataset} used in Config file.\n"
-                             f"Supported dataset are : {list(DataLoaderStage.DATASET.keys())}")
+            raise ValueError(f"Unsupported config 'dataset': {self.dataset} "
+                             f"Supported : {utils.list_possible_values(DataLoaderStage.DATASET)}")
         if not isinstance(self.shuffle_train, bool):
-            raise TypeError("Config file 'shuffle' must be a boolean.")
+            raise TypeError("Config 'shuffle_train' must be a boolean.")
 
-        # Model Loader settings
+    def _validate_model_loader_settings(self) -> None:
+        """Validates model-related settings."""
+        from source.stages.model_loader_stage import ModelLoaderStage
+
         if self.model_name not in ModelLoaderStage.MODELS:
-            raise ValueError(f"Unsupported model name: {self.model_name} used in Config file.\n"
-                             f"Supported dataset are : {list(ModelLoaderStage.MODELS.keys())}")
-        if not isinstance(self.pretrained, bool):
-            raise TypeError("Config file 'pretrained' must be a boolean.")
+            raise ValueError(f"Unsupported config 'model_name': {self.model_name}. "
+                             f"Supported: {utils.list_possible_values(ModelLoaderStage.MODELS)}")
 
-        # Training stage settings
+    def _validate_training_settings(self) -> None:
+        """Validates training-related settings."""
+        from source.stages.training_stage import TrainingStage
+
         if not isinstance(self.early_stopping, bool):
-            raise TypeError("Config file 'early_stopping' must be a boolean.")
+            raise TypeError("Config 'early_stopping' must be a boolean.")
         if self.early_stopping and self.early_stopping_patience <= 0:
-            raise ValueError("Config file 'early_stopping_patience' must be a positive integer if 'early_stopping' is "
+            raise ValueError("Config 'early_stopping_patience' must be a positive integer if 'early_stopping' is "
                              "enabled.")
         if self.loss_function not in TrainingStage.LOSS_FUNCTIONS:
-            raise ValueError(f"Unsupported loss function: {self.loss_function}. "
-                             f"Available options are: {list(TrainingStage.LOSS_FUNCTIONS.keys())}")
+            raise ValueError(f"Unsupported config 'loss_function': {self.loss_function}. "
+                             f"Supported: {utils.list_possible_values(TrainingStage.LOSS_FUNCTIONS)}")
 
-        # Optimizer settings
+    def _validate_optimizer_settings(self) -> None:
+        """Validates optimizer-related settings."""
+        from source.stages.training_stage import TrainingStage
+
         if self.learning_rate <= 0:
-            raise ValueError("Config file 'learning_rate' must be positive.")
+            raise ValueError("Config 'learning_rate' must be positive.")
         if self.momentum is not None and self.momentum <= 0:
-            raise ValueError("Config file 'momentum' must be positive if provided.")
+            raise ValueError("Config 'momentum' must be a positive integer if provided.")
         if self.optimizer not in TrainingStage.OPTIMIZERS:
-            raise ValueError(f"Unsupported optimizer type: {self.optimizer}.\n"
-                             f"Supported dataset are : {TrainingStage.OPTIMIZERS}")
+            raise ValueError(f"Unsupported config 'optimizer': {self.optimizer}.\n"
+                             f"Supported: {utils.list_possible_values(TrainingStage.OPTIMIZERS)}")
 
     @classmethod
     def from_yaml(cls, filepath: str) -> "Config":
-        """Load configuration from a YAML file."""
+        """Loads configuration from a YAML file.
+
+        Args:
+            filepath (str): The path to the YAML configuration file.
+
+        Returns:
+            Config: A `Config` object initialized with the data from the YAML file.
+        """
         with open(filepath, 'r') as file:
             data = yaml.safe_load(file)
         return cls(**data)
 
     # TODO : @classmethod ?
     def to_yaml(self, filepath: str) -> None:
-        """Save the configuration to a YAML file."""
+        """Saves the current configuration to a YAML file.
+
+        Args:
+            filepath (str): The path to the YAML file where the configuration will be saved.
+        """
         with open(filepath, 'w') as file:
             yaml.safe_dump(asdict(self), file)

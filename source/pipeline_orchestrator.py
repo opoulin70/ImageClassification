@@ -1,70 +1,64 @@
-"""TODO
+"""Pipeline Orchestrator for Machine Learning Workflows.
 
-1 - DataLoaderStage
-        Load the dataset and split into train/test loaders.
-2 - AugmentationStage
-        Apply augmentations to training data only.
-3 - ModelLoaderStage
-        Load pre-trained ResNet18 and modify for CIFAR-10.
-4 - TrainingStage
-        Train the model with W&B logging for metrics, loss, and images.
-5 - EvaluationStage
-        Compute validation/test metrics.
-6 - VisualizationStage
-        Plot loss/accuracy curves or use W&B visualizations.
-7 - ModelStorageStage
-        Save the trained model to disk or W&B artifacts.
-8 - PredictionStage (Optional)
-        Run inference on test data or new unseen data.
+This module defines the `PipelineOrchestrator` class, which manages the execution of various stages in a machine
+learning pipeline. Users can modify the order or add new stages as needed. Each stage is implemented as a separate
+module, allowing easy extensibility.
+
+Pipeline Stages :
+1 - DataLoaderStage: Load the dataset and split into train/test loaders.
+2 - AugmentationStage (planned): Apply augmentations to training data.
+3 - ModelLoaderStage: Loads and initializes the selected model.
+4 - TrainingStage: Train the model while saving training metrics.
+5 - EvaluationStage: Compute validation/test metrics.
+6 - VisualizationStage: Plot loss/accuracy curves.
+7 - ModelStorageStage (planned): Save the trained model for future use.
+8 - PredictionStage (planned): Runs inference on new/unseen data.
 """
-import os
 
 from source.config import Config
-from source.pipeline_context import PipelineContext, PipelineData
-from stages.data_loader_stage import DataLoaderStage
-from stages.model_loader_stage import ModelLoaderStage
-from stages.training_stage import TrainingStage
+from source.stages.base_pipeline_stage import BasePipelineStage
+from source.pipeline_context import PipelineContext
+from source.stages.data_loader_stage import DataLoaderStage
+from source.stages.model_loader_stage import ModelLoaderStage
+from source.stages.training_stage import TrainingStage
+from source.stages.evaluation_stage import EvaluationStage
+from source.stages.visualization_stage import VisualizationStage
 
 
-# TODO : Add default pipeline
+# TODO : Add default pipeline. Useful for creating a pipeline without having to manually add stages.
 class PipelineOrchestrator:
-    """Manages the execution of pipeline stages, passing data between them."""
+    """Manages the execution of sequential pipeline stages in a machine learning workflow."""
 
+    # TODO : Add all stages. Useful for when adding stages from parsing a file, etc.
     STAGES = {
         "data_loader_stage": DataLoaderStage(),
         "model_loader_stage": ModelLoaderStage(),
-        "training_stage": TrainingStage()
+        "training_stage": TrainingStage(),
+        "evaluation_stage": EvaluationStage(),
+        "visualization_stage": VisualizationStage()
     }
 
     def __init__(self):
+        """Initializes an empty pipeline with no predefined stages."""
         self.stages = []
 
-    # TODO
-    # def create_pipeline_from_config(self, config=None):
-    #     config = config
-    #     if config is None:
-    #         raise ValueError("Pipeline must have a valid configuration!")
+    def add_stage(self, stage: BasePipelineStage) -> None:
+        """Adds a new stage to the pipeline.
 
-    def _fetch_config(self):
-        config_path = os.path.join(os.path.dirname(__file__), "../config/config.yaml")
-        return Config.from_yaml(config_path)
-
-    def add_stage(self, stage):
-        """Added stage must inherit from BasePipelineStage."""
+        Args:
+            stage (BasePipelineStage): The stage to be added. Must inherit from `BasePipelineStage`.
+        """
         self.stages.append(stage)
 
-    def run(self):
-        # TODO : Remove
-        # # Define the path to the config file
-        # config_path = os.path.join(os.path.dirname(__file__), "../config/config.yaml")
-        #
-        # # Initialize ConfigManager with the YAML config and get the config
-        # config = ConfigManager.initialize_from_yaml(config_path).config
+    def run(self, config: Config) -> None:
+        """Executes all pipeline stages sequentially.
 
-        config = self._fetch_config()
+        Args:
+            config (Config): Configuration object containing pipeline parameters.
+        """
         context = PipelineContext()
+
         # The output from each execute method becomes the input for the next stage.
         for stage in self.stages:
-            # TODO : Remove and user logger
-            print(f"***** Executing stage: {stage.__class__.__name__} *****")  # TODO: Remove of make cleaner.
+            print(f"***** Executing stage: {stage.__class__.__name__} *****")  # TODO : Replace with logging.
             context = stage.execute(config, context)

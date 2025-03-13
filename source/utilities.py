@@ -43,3 +43,13 @@ def show_images(images, size=(64, 64)):
     np_img = grid_image.numpy()  # Convert the tensor to a NumPy array
     plt.imshow(np.transpose(np_img, (1, 2, 0)))  # Convert from (C, H, W) to (H, W, C)
     plt.show()
+
+
+def list_possible_values(data: dict | set) -> list:
+    """Returns the keys if `data` is a dictionary, or the values if `data` is a set."""
+    if isinstance(data, dict):
+        return list(data.keys())
+    elif isinstance(data, set):
+        return list(data)
+    else:
+        raise TypeError("Input must be a dictionary or a set.")
