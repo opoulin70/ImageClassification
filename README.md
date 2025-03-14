@@ -35,9 +35,9 @@ The goal is to progressively extend the pipeline so that it supports various mac
 
 The pipeline is built using the `PipelineOrchestrator`, which manages all ML workflow stages.
 
-### 1 - Configuration : `config.py` 
+### 1 - Configuration : `config.yaml` 
 
-All hyperparameters and settings are defined in `config.py`. Users can modify this file to change dataset sources, model architectures, and training parameters.
+All hyperparameters and settings are defined, by default, in `config/config.yaml`. Users can modify this file to change, among other things, dataset sources, model architectures and training parameters.
 
 Exemple :
 ```Yaml

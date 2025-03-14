@@ -124,7 +124,7 @@ class TrainingStage(BasePipelineStage):
             # Add average epoch training loss to the training metrics.
             training_metrics.epoch_losses.append(running_loss / len(train_loader))
 
-            # Validation phase
+            # TODO : Validation phase
 
         # Finished training
         training_metrics.training_time = time.time() - start_time

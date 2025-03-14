@@ -73,6 +73,8 @@ class Config:
         "cuda"
     }
 
+    # TODO : Should probably only validate settings for stages that are in use,
+    #  which means maybe this should be done in PipelineOrchestrator.run() instead of __post_init__
     def __post_init__(self):
         """Validates configuration settings upon initialization."""
 
@@ -81,6 +83,29 @@ class Config:
         self._validate_model_loader_settings()
         self._validate_training_settings()
         self._validate_optimizer_settings()
+
+    @classmethod
+    def from_yaml(cls, filepath: str) -> "Config":
+        """Loads configuration from a YAML file.
+
+        Args:
+            filepath (str): The path to the YAML configuration file.
+
+        Returns:
+            Config: A `Config` object initialized with the data from the YAML file.
+        """
+        with open(filepath, 'r') as file:
+            data = yaml.safe_load(file)
+        return cls(**data)
+
+    def to_yaml(self, filepath: str) -> None:
+        """Saves the current configuration to a YAML file.
+
+        Args:
+            filepath (str): The path to the YAML file where the configuration will be saved.
+        """
+        with open(filepath, 'w') as file:
+            yaml.safe_dump(asdict(self), file)
 
     def _validate_general_settings(self) -> None:
         """Validates general configuration settings."""
@@ -96,6 +121,7 @@ class Config:
         """Validates data loader settings."""
         from source.stages.data_loader_stage import DataLoaderStage
 
+        # TODO : data_augmentation check should probably be moved.
         if not isinstance(self.data_augmentation, bool):
             raise TypeError("Config 'data_augmentation' must be a boolean.")
         if self.dataset not in DataLoaderStage.DATASET:
@@ -136,27 +162,3 @@ class Config:
         if self.optimizer not in TrainingStage.OPTIMIZERS:
             raise ValueError(f"Unsupported config 'optimizer': {self.optimizer}.\n"
                              f"Supported: {utils.list_possible_values(TrainingStage.OPTIMIZERS)}")
-
-    @classmethod
-    def from_yaml(cls, filepath: str) -> "Config":
-        """Loads configuration from a YAML file.
-
-        Args:
-            filepath (str): The path to the YAML configuration file.
-
-        Returns:
-            Config: A `Config` object initialized with the data from the YAML file.
-        """
-        with open(filepath, 'r') as file:
-            data = yaml.safe_load(file)
-        return cls(**data)
-
-    # TODO : @classmethod ?
-    def to_yaml(self, filepath: str) -> None:
-        """Saves the current configuration to a YAML file.
-
-        Args:
-            filepath (str): The path to the YAML file where the configuration will be saved.
-        """
-        with open(filepath, 'w') as file:
-            yaml.safe_dump(asdict(self), file)

@@ -1,4 +1,3 @@
-"""TODO"""
 import os
 from source.pipeline_orchestrator import PipelineOrchestrator
 from source.config import Config

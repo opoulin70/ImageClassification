@@ -4,7 +4,6 @@
 batch_size: 128
 device: "cuda"
 num_epochs: 10
-use_validation: True
 
 # DataLoader Settings
 data_augmentation: False
@@ -25,3 +24,4 @@ optimizer: "sgd"
 early_stopping: false
 early_stopping_patience: 5
 loss_function: "cross_entropy"
+use_validation: True
